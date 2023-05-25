@@ -45,6 +45,7 @@ void initConnection();
 void authorized();
 void refused();
 
+void lcdPrint(String msg);
 void setupFingerprintSensor();
 void storeFingerprint();
 void checkFingerprint();
@@ -60,7 +61,7 @@ void setup()
   lcd.init();
   lcd.backlight();
 
-  // initConnection();
+  initConnection();
   setupFingerprintSensor();
   // storeFingerprint();
 
@@ -70,21 +71,31 @@ void setup()
   pinMode(RELE, OUTPUT);
   digitalWrite(RELE, 1);
 
-  lcd.print("Identifique-se");
+  lcdPrint("Identifique-se");
 }
 
 void loop()
 {
-  // clientMqtt.loop();
+  clientMqtt.loop();
   // menu();
   checkTag();
   checkFingerprint();
 }
 
+void lcdPrint(String msg){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(msg);
+}
+
 void checkTag()
 {
-  if (!mfrc522.PICC_IsNewCardPresent() && !mfrc522.PICC_ReadCardSerial())
+  if (!mfrc522.PICC_IsNewCardPresent())
   {
+    return;
+  }
+
+  if (!mfrc522.PICC_ReadCardSerial()){
     return;
   }
 
@@ -113,27 +124,20 @@ void checkTag()
 void authorized()
 {
   digitalWrite(RELE, 0);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Acesso Liberado");
+  lcdPrint("Acesso Liberado");
   digitalWrite(BUZZER, HIGH);
   delay(250);
   digitalWrite(BUZZER, LOW);
   digitalWrite(LED_VERD, HIGH);
   delay(2000);
   digitalWrite(LED_VERD, LOW);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Identifique-se");
   digitalWrite(RELE, 1);
-
+  lcdPrint("Identifique-se");
 }
 
 void refused()
 {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Acesso Negado");
+  lcdPrint("Acesso Negado");
   for (int i = 0; i < 3; i++)
   {
     digitalWrite(LED_VERM, HIGH);
@@ -144,9 +148,7 @@ void refused()
     digitalWrite(BUZZER, LOW);
     delay(500);
   }
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Identifique-se");
+  lcdPrint("Identifique-se");
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -163,14 +165,14 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   if (payload[0] == '0')
   {
-    Serial.println("\nDesligando luz");
-    // digitalWrite(led, LOW);
+    Serial.println("\nTRAVANDO ACESSO");
+    digitalWrite(RELE, 1);
   }
 
   if (payload[0] == '1')
   {
-    Serial.println("\nLigando luz");
-    // digitalWrite(led, HIGH);
+    Serial.println("\nLIBERANDO ACESSO");
+    digitalWrite(RELE, 0);
   }
 
   Serial.println();
